@@ -1,4 +1,4 @@
-const { app, Tray, nativeImage, Menu, ipcMain } = require('electron');
+const { app, Tray, nativeImage, Menu, ipcMain, session } = require('electron');
 const settings = require('electron-settings');
 const path = require('path');
 const SettingsController = require('./setting-controller');
@@ -30,6 +30,10 @@ class TrayController {
         ipcMain.on('updateUnread', (event, value) => {
             this.tray.setImage(this.createTrayIcon(value))
         })
+
+        this.mailController.onUpdateUnread = (value) => {
+            this.tray.setImage(this.createTrayIcon(value));
+        }
     }
 
     createTrayIcon(value) {

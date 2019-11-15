@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell, ipcMain } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, session, Notification } = require('electron');
 const settings = require('electron-settings');
 const CssInjector = require('../js/css-injector');
 const path = require('path');
@@ -6,7 +6,7 @@ const fs = require('fs-extra');
 const isOnline = require('is-online');
 
 const settingsExist = fs.existsSync(`${app.getPath('userData')}/Settings`);
-const homepageUrl = settingsExist ? settings.get('homepageUrl', 'https://outlook.live.com/mail') : 'https://outlook.live.com/mail';
+const homepageUrl = settingsExist ? settings.get('homepageUrl', 'http://outlook.office365.com/') : 'http://outlook.office365.com/';
 const deeplinkUrls = ['outlook.live.com/mail/deeplink', 'outlook.office365.com/mail/deeplink', 'outlook.office.com/mail/deeplink'];
 const outlookUrls = ['outlook.live.com', 'outlook.office365.com', 'outlook.office.com'];
 
@@ -72,6 +72,68 @@ class MailWindowController {
 
         // Open the new window in external browser
         this.win.webContents.on('new-window', this.openInBrowser)
+
+        this.notify = null;
+        this.iconUnread = false;
+
+        let setNotify = (visible, text) => {
+            if (this.notify === null && visible) {
+                this.notify = new Notification({
+                    title: 'Outlook',
+                    body: text || 'You have a new e-mail!',
+                    requireInteraction: true
+                });
+                this.notify.on('onclick', () => {
+                    this.show();
+                });
+                this.notify.show();
+            } else if (this.notify !== null && !visible) {
+                this.notify.close();
+                this.notify = null;
+            }
+        };
+
+        this.win.on('focus', (e) => {
+            if (!this.iconUnread && this.onUpdateUnread) {
+                this.onUpdateUnread(0);
+                setNotify(0);
+            }
+        });
+
+        this.win.webContents.on('page-favicon-updated', (e, icons) => {
+            if (this.onUpdateUnread) {
+                for (var icon of icons)
+                {
+                    if (icon.match(/.*mail-seen\..*/)) {
+                        this.iconUnread = false;
+                        this.onUpdateUnread(0);
+                        setNotify(0);
+                    } else if (icon.match(/.*mail-unseen\..*/)) {
+                        this.iconUnread = true;
+                        this.onUpdateUnread(1);
+                        setNotify(1);
+                    }
+                }
+            }
+        });
+
+        setTimeout(() => {setNotify(1, 'Outlook has started. Please check if you have any new e-mails!')}, 5000);
+
+        session.defaultSession.webRequest.onCompleted({urls:['*://*/*/newmail.mp3']}, (details) => {
+            if (this.onUpdateUnread) {
+                this.onUpdateUnread(1);
+                setNotify(1);
+            }
+        });
+
+        session.defaultSession.webRequest.onCompleted({urls:['*://*/*/reminder.mp3']}, (details) => {
+            if (this.onUpdateUnread) {
+                this.onUpdateUnread(1);
+                setNotify(1, 'Check your calendar!');
+            }
+        });
+
+        //this.win.webContents.openDevTools();
     }
 
     addUnreadNumberObserver() {
