@@ -137,6 +137,70 @@ class MailWindowController {
     }
 
     addUnreadNumberObserver() {
+
+	let addHoxHuntObserver = function() {
+
+		let hoxHuntTimer = null;
+		let hoxHuntLevel = 0;
+
+		function alertHoxHunt(level) {
+			hoxHuntLevel = Math.max(hoxHuntLevel, level);
+			if (hoxHuntTimer !== null) {
+				window.clearTimeout(hoxHuntTimer);
+			}
+			hoxHuntTimer = setTimeout(() => {
+				hoxHuntTimer = null;
+				if (hoxHuntLevel > 1) {
+					alert(`\n=====================\n\n  Probably HoxHunt.\n\n=====================\n`);
+				} else {
+					alert(`\n--------------------------------\n\n  Maybe HoxHunt?\n\n--------------------------------\n`);
+				}
+				hoxHuntLevel = 0;
+			}, 300);
+		}
+
+		setTimeout(() => {
+			let observer = new MutationObserver(mutations => {
+				let hh = false;
+				for (let m of mutations) {
+					if (m.type != 'childList') continue;
+					for (let n of m.addedNodes) {
+						if (/norclicsemi|x_hox/.test(n.innerHTML)) {
+							hh = 2;
+						}
+						if (!n.querySelectorAll) continue;
+						let list = n.querySelectorAll('[href^="http"]');
+						for (let l of list) {
+							l.getAttribute('href').replace(/https?:\/\/[a-zA-Z_\.0-9-]+\/+([a-zA-Z0-9_-]{9,99})(\?|$)/, (m, h) => {
+								let short = 0;
+								let words = h.split(/-|_|(?=[A-Z0-9])/);
+								for (let w of words) {
+									if (w.length <= 3) {
+										short++;
+									}
+								}
+								if (2 * short > words.length) {
+									hh = 1;
+								}
+							});
+						}
+					}
+				}
+				if (hh) {
+					alertHoxHunt(hh);
+				}
+			});
+			let readingPane = document.querySelector('[aria-label="Reading Pane"]');
+			observer.observe(readingPane, {childList: true, subtree: true});
+			console.log('======== OBSERVING ========');
+		}, 10000);
+
+	}
+	addHoxHuntObserver = addHoxHuntObserver.toString();
+	addHoxHuntObserver = addHoxHuntObserver.slice(addHoxHuntObserver.indexOf("{") + 1, addHoxHuntObserver.lastIndexOf("}"));
+	addHoxHuntObserver = `((function(){ ${addHoxHuntObserver} })())`;
+	this.win.webContents.executeJavaScript(addHoxHuntObserver);
+
         settingsExist && settings.get('unreadMessageClass') && this.win.webContents.executeJavaScript(`
             setTimeout(() => {
                 let unreadSpan = document.querySelector(".${settings.get('unreadMessageClass')}");

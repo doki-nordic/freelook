@@ -19,6 +19,28 @@ CssInjector.main = `
     .${fs.existsSync(`${app.getPath('userData')}/Settings`) ? settings.get('premiumAdsClass', 'some-class-does-not-exist') : 'some-class-does-not-exist'} {
         display: none !important;
     }
+    [id^="x_hox"], [href*="norclicsemi"] {
+	border: 1px solid red;
+	background: lightgreen;
+    }
+    [id^="x_hox"]::before, [href*="norclicsemi"]::before {
+	content: "HoxHunt";
+	border: 5px solid #FF0000BB;
+	padding: 20px;
+	display: inline-block;
+	position: absolute;
+	background: #FFFF00BB;
+	font-size: 200%;
+	font-weight: bold;
+	box-shadow: 0px 0px 5px 2px red;
+	text-shadow: 0px 0px 3px 2px white;
+	color: black;
+    }
+    img[id^="x_hox"] {
+	padding: 10px;
+	border: 7px solid red;
+	box-shadow: 0 0 6px 7px blue;
+    }
 `
 
 CssInjector.noFrame = `
